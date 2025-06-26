@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Streamify Pro Player</title>
+<style>
+  body {
+    background: #121212;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .player {
+    background: #181818;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    width: 360px;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .cover {
+    width: 300px;
+    height: 300px;
+    border-radius: 16px;
+    object-fit: cover;
+    margin-bottom: 20px;
+    box-shadow: 0 0 25px #1db954;
+    transition: transform 0.8s linear;
+  }
+  .playing {
+    animation: spin 10s linear infinite;
+  }
+  @keyframes spin {
+    0% {transform: rotate(0deg);}
+    100% {transform: rotate(360deg);}
+  }
+
+  .info {
+    text-align: center;
+  }
+
+  .title {
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin: 0 0 5px;
+  }
+
+  .artist {
+    color: #b3b3b3;
+    font-size: 1.1rem;
+    margin: 0 0 20px;
+  }
+
+  .progress-container {
+    background: #282828;
+    border-radius: 6px;
+    height: 8px;
+    width: 100%;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .progress {
+    background: #1db954;
+    height: 8px;
+    border-radius: 6px;
+    width: 0%;
+  }
+
+  .time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #b3b3b3;
+    margin: 6px 0 12px;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 15px;
+  }
+
+  .btn {
+    background: none;
+    border: none;
+    color: #1db954;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.3s;
+    position: relative;
+  }
+
+  .btn:hover {
+    color: #1ed760;
+  }
+
+  .btn:focus {
+    outline: none;
+  }
+
+  .btn.active {
+    color: #1ed760;
+  }
+
+  .playlist {
+    margin-top: 20px;
+    width: 100%;
+    max-height: 160px;
+    overflow-y: auto;
+    background: #222;
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .playlist-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s;
+  }
+  .playlist-item:hover {
+    background-color: #1db954;
+    color: #fff;
+  }
+  .playlist-item.active {
+    background-color: #1ed760;
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .volume-container {
+    width: 100%;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .volume-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 6px;
+    background: #282828;
+    cursor: pointer;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #1db954;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+  }
+  .volume-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #1db954;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="player" role="main" aria-label="Streamify Pro Music Player">
+  <img src="" alt="Album Cover" class="cover" id="cover" />
+  
+  <div class="info" aria-live="polite">
+    <h2 class="title" id="title">Titolo</h2>
+    <h3 class="artist" id="artist">Artista</h3>
+  </div>
+
+  <div class="progress-container" id="progress-container" aria-label="Barra di progresso" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="progress" id="progress"></div>
+  </div>
+
+  <div class="time">
+    <span id="current-time">0:00</span>
+    <span id="duration">0:00</span>
+  </div>
+
+  <div class="controls" role="group" aria-label="Controlli player">
+    <button class="btn" id="shuffle" title="Shuffle" aria-pressed="false" aria-label="Attiva o disattiva riproduzione casuale">&#128256;</button>
+    <button class="btn" id="prev" title="Brano precedente" aria-label="Brano precedente">&#9664;&#9664;</button>
+    <button class="btn" id="play" title="Play/Pausa" aria-label="Play/Pausa">&#9654;</button>
+    <button class="btn" id="next" title="Brano successivo" aria-label="Brano successivo">&#9654;&#9654;</button>
+    <button class="btn" id="repeat" title="Ripeti" aria-pressed="false" aria-label="Attiva o disattiva ripeti">&#128257;</button>
+  </div>
+
+  <div class="volume-container">
+    <label for="volume-slider" style="color:#b3b3b3;">Volume:</label>
+    <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.01" aria-valuemin="0" aria-valuemax="1" aria-valuenow="1" aria-label="Controllo volume" />
+  </div>
+
+  <div class="playlist" id="playlist" role="list" aria-label="Playlist canzoni">
+    <!-- elementi playlist generati da JS -->
+  </div>
+</div>
+
+<audio id="audio"></audio>
+
+<script>
+  const audio = document.getElementById('audio');
+  const playBtn = document.getElementById('play');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const shuffleBtn = document.getElementById('shuffle');
+  const repeatBtn = document.getElementById('repeat');
+  const progress = document.getElementById('progress');
+  const progressContainer = document.getElementById('progress-container');
+  const title = document.getElementById('title');
+  const artist = document.getElementById('artist');
+  const cover = document.getElementById('cover');
+  const currentTimeEl = document.getElementById('current-time');
+  const durationEl = document.getElementById('duration');
+  const playlistEl = document.getElementById('playlist');
+  const volumeSlider = document.getElementById('volume-slider');
+
+  const songs = [
+    {
+      title: "Blinding Lights",
+      artist: "The Weeknd",
+      src: "https://p.scdn.co/mp3-preview/6f5a4e1eaf48a4f183e522f883fce79e381a9e5d?cid=774b29d4f13844c495f206cafdad9c86",
+      cover: "https://i.scdn.co/image/ab67616d0000b2730e9502a8bb6c7b9f7d0f8d39"
+    },
+    {
+      title: "Levitating",
+      artist: "Dua Lipa",
+      src: "https://p.scdn.co/mp3-preview/c60f650d3e4a6b00b8cdb4a63a8311ae8efee58f?cid=774b29d4f13844c495f206cafdad9c86",
+      cover: "https://i.scdn.co/image/ab67616d0000b27397f1f8c62f8aab03c842e0b4a"
+    },
+    {
+      title: "Watermelon Sugar",
+      artist: "Harry Styles",
+      src: "https://p.scdn.co/mp3-preview/ce6b71e6f1d858d96936b9d8ce8b153dfb5d1421?cid=774b29d4f13844c495f206cafdad9c86",
+      cover: "https://i.scdn.co/image/ab67616d0000b2735210c1360e945ff14b086a6f"
+    },
+    {
+      title: "Peaches",
+      artist: "Justin Bieber",
+      src: "https://p.scdn.co/mp3-preview/6b0f9cc2f0516822ae0f140bd5d228a4b4a01f60?cid=774b29d4f13844c495f206cafdad9c86",
+      cover: "https://i.scdn.co/image/ab67616d0000b27305a63b9dbba02e5e298521c3"
+    }
+  ];
+
+  let songIndex = 0;
+  let isPlaying = false;
+  let isShuffle = false;
+  let repeatMode = 'none'; // 'none' | 'one' | 'all'
+
+  // Carica la canzone
+  function loadSong(song) {
+    title.textContent = song.title;
+    artist.textContent = song.artist;
+    cover.src = song.cover;
+    audio.src = song.src;
+    updatePlaylistHighlight();
+    saveState();
+  }
+
+  // Play / Pausa
+  function playSong() {
+    audio.play();
+    isPlaying = true;
+    playBtn.textContent = '⏸';
+    cover.classList.add('playing');
+    saveState();
+  }
+
+  function pauseSong() {
+    audio.pause();
+    isPlaying = false;
+    playBtn.textContent = '▶';
+    cover.classList.remove('playing');
+    saveState();
+  }
+
+  playBtn.addEventListener('click', () => {
+    isPlaying ? pauseSong() : playSong();
+  });
+
+  prevBtn.addEventListener('click', () => {
+    if (isShuffle) {
+      shuffleSong();
+    } else {
+      songIndex--;
+      if (songIndex < 0) songIndex = songs.length - 1;
+    }
+    loadSong(songs[songIndex]);
+    playSong();
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (isShuffle) {
+      shuffleSong();
+    } else {
+      songIndex++;
+      if (songIndex > songs.length - 1) songIndex = 0;
+    }
+    loadSong(songs[songIndex]);
+    playSong();
+  });
+
+  shuffleBtn.addEventListener('click', () => {
+    isShuffle = !isShuffle;
+    shuffleBtn.classList.toggle('active');
+    shuffleBtn.setAttribute('aria-pressed', isShuffle);
+    saveState();
+  });
+
+  repeatBtn.addEventListener('click', () => {
+    if (repeatMode === 'none') {
+      repeatMode = 'all';
+      repeatBtn.classList.add('active');
+      repeatBtn.title = 'Ripeti playlist';
+    } else if (repeatMode === 'all') {
+      repeatMode = 'one';
+      repeatBtn.title = 'Ripeti canzone';
+    } else {
+      repeatMode = 'none';
+      repeatBtn.classList.remove('active');
+      repeatBtn.title = 'Ripeti disattivato';
+    }
+    saveState();
+  });
+
+  // Aggiorna la barra di progresso e i tempi
+  audio.addEventListener('timeupdate', () => {
+    const { currentTime, duration } = audio;
+    if (duration) {
+      const progressPercent = (currentTime / duration) * 100;
+      progress.style.width = `${progressPercent}%`;
+      progressContainer.setAttribute('aria-valuenow', Math.floor(progressPercent));
+      currentTimeEl.textContent = formatTime(currentTime);
+      durationEl.textContent = formatTime(duration);
+    }
+  });
+
+  // Formatta tempo in mm:ss
+  function formatTime(time) {
+    const minutes = Math.floor(time / 60) || 0;
+    const seconds = Math.floor(time % 60) || 0;
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  }
+
+  // Cliccando sulla barra di progresso sposta il brano
+  progressContainer.addEventListener('click', (e) => {
+    const width = progressContainer.clientWidth;
+    const clickX = e.offsetX;
+    const duration = audio.duration;
+    if (duration) {
+      audio.currentTime = (clickX / width) * duration;
+    }
+  });
+
+  // Cambio canzone alla fine
+  audio.addEventListener('ended', () => {
+    if (repeatMode === 'one') {
+      playSong();
+    } else if (isShuffle) {
+      shuffleSong();
+    } else {
+      if (songIndex === songs.length - 1) {
+        if (repeatMode === 'all') {
+          songIndex = 0;
+          loadSong(songs[songIndex]);
+          playSong();
+        } else {
+          pauseSong();
+          audio.currentTime = 0;
+        }
+      } else {
+        songIndex++;
+        loadSong(songs[songIndex]);
+        playSong();
+      }
+    }
+  });
+
+  // Volume
+  volumeSlider.addEventListener('input', (e) => {
+    audio.volume = e.target.value;
+    volumeSlider.setAttribute('aria-valuenow', e.target.value);
+    saveState();
+  });
+
+  // Playlist generazione
+  function generatePlaylist() {
+    playlistEl.innerHTML = '';
+    songs.forEach((song, index) => {
+      const item = document.createElement('div');
+      item.classList.add('playlist-item');
+      item.setAttribute('role', 'listitem');
+      item.textContent = `${song.title} - ${song.artist}`;
+      item.addEventListener('click', () => {
+        songIndex = index;
+        loadSong(songs[songIndex]);
+        playSong();
+      });
+      playlistEl.appendChild(item);
+    });
+    updatePlaylistHighlight();
+  }
+
+  // Evidenzia canzone attiva in playlist
+  function updatePlaylistHighlight() {
+    const items = playlistEl.children;
+    for (let i = 0; i < items.length; i++) {
+      items[i].classList.toggle('active', i === songIndex);
+    }
+  }
+
+  // Riproduzione casuale
+  function shuffleSong() {
+    let randomIndex;
+    do {
+      randomIndex = Math.floor(Math.random() * songs.length);
+    } while (randomIndex === songIndex && songs.length > 1);
+    songIndex = randomIndex;
+  }
+
+  // Salvataggio stato in localStorage
+  function saveState() {
+    const state = {
+      songIndex,
+      isPlaying,
+      isShuffle,
+      repeatMode,
+      volume: audio.volume
+    };
+    localStorage.setItem('streamifyState', JSON.stringify(state));
+  }
+
+  // Caricamento stato da localStorage
+  function loadState() {
+    const savedState = localStorage.getItem('streamifyState');
+    if (savedState) {
+      const state = JSON.parse(savedState);
+      if (state.songIndex >= 0 && state.songIndex < songs.length) {
+        songIndex = state.songIndex;
+      }
+      isPlaying = state.isPlaying || false;
+      isShuffle = state.isShuffle || false;
+      repeatMode = state.repeatMode || 'none';
+      audio.volume = state.volume || 1;
+      volumeSlider.value = audio.volume;
+
+      shuffleBtn.classList.toggle('active', isShuffle);
+      shuffleBtn.setAttribute('aria-pressed', isShuffle);
+      if (repeatMode === 'all') {
+        repeatBtn.classList.add('active');
+        repeatBtn.title = 'Ripeti playlist';
+      } else if (repeatMode === 'one') {
+        repeatBtn.title = 'Ripeti canzone';
+      } else {
+        repeatBtn.classList.remove('active');
+        repeatBtn.title = 'Ripeti disattivato';
+      }
+    }
+  }
+
+  // Inizializzazione
+  generatePlaylist();
+  loadState();
+  loadSong(songs[songIndex]);
+
+  if (isPlaying) {
+    playSong();
+  } else {
+    pauseSong();
+  }
+
+</script>
+
+</body>
+</html>
