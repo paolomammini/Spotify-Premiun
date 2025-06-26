@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MyTune Player</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1db954, #1ed760);
+            color: white;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .player {
+            background-color: #121212;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            width: 320px;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 10px;
+            font-weight: 700;
+            font-size: 1.8rem;
+        }
+        audio {
+            width: 100%;
+            margin-top: 15px;
+            outline: none;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #1db954;
+            border: none;
+            padding: 10px 15px;
+            margin: 10px 5px;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            outline: none;
+        }
+        button:hover {
+            background-color: #1ed760;
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .track-info {
+            margin-top: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            min-height: 40px;
+        }
+        input[type=range] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .volume-control input {
+            width: 70%;
+        }
+    </style>
+</head>
+<body>
+    <div class="player">
+        <h1>MyTune Player</h1>
+
+        <div class="track-info" id="trackTitle">Seleziona una traccia</div>
+
+        <audio id="audioPlayer" preload="auto"></audio>
+
+        <input type="range" id="progressBar" value="0" min="0" max="100" step="1" />
+
+        <div class="controls">
+            <button id="prevBtn" title="Traccia precedente">&#9664;&#9664;</button>
+            <button id="playPauseBtn" title="Play/Pausa">&#9658;</button>
+            <button id="nextBtn" title="Traccia successiva">&#9654;&#9654;</button>
+        </div>
+
+        <div class="volume-control">
+            <label for="volumeSlider">Volume</label>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" />
+        </div>
+    </div>
+
+    <script>
+        const tracks = [
+            {
+                title: "Track 1 - Energetic Beat",
+                url: "https://p.scdn.co/mp3-preview/4c495fa6be6a7a7f8f4b2f5659ffed0dfb54d8e2?cid=774b29d4f13844c495f206cafdad9c86",
+            },
+            {
+                title: "Track 2 - Chill Vibes",
+                url: "https://p.scdn.co/mp3-preview/4c495fa6be6a7a7f8f4b2f5659ffed0dfb54d8e2?cid=774b29d4f13844c495f206cafdad9c86",
+            },
+            {
+                title: "Track 3 - Smooth Jazz",
+                url: "https://p.scdn.co/mp3-preview/5d29506f7e944a14d62548b635883f19b52acb94?cid=774b29d4f13844c495f206cafdad9c86",
+            }
+        ];
+
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const trackTitle = document.getElementById('trackTitle');
+        const progressBar = document.getElementById('progressBar');
+        const volumeSlider = document.getElementById('volumeSlider');
+
+        let currentTrackIndex = 0;
+        let isPlaying = false;
+        let updateProgressInterval;
+
+        function loadTrack(index) {
+            if (index < 0) index = tracks.length -1;
+            if (index >= tracks.length) index = 0;
+            currentTrackIndex = index;
+            audioPlayer.src = tracks[index].url;
+            trackTitle.textContent = tracks[index].title;
+            audioPlayer.load();
+            progressBar.value = 0;
+        }
+
+        function playTrack() {
+            audioPlayer.play();
+            isPlaying = true;
+            playPauseBtn.innerHTML = '&#10074;&#10074;'; // Pause icon
+            startUpdatingProgress();
+        }
+
+        function pauseTrack() {
+            audioPlayer.pause();
+            isPlaying = false;
+            playPauseBtn.innerHTML = '&#9658;'; // Play icon
+            stopUpdatingProgress();
+        }
+
+        playPauseBtn.addEventListener('click', () => {
+            if(isPlaying) {
+                pauseTrack();
+            } else {
+                playTrack();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            loadTrack(currentTrackIndex - 1);
+            playTrack();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            loadTrack(currentTrackIndex + 1);
+            playTrack();
+        });
+
+        audioPlayer.addEventListener('ended', () => {
+            loadTrack(currentTrackIndex + 1);
+            playTrack();
+        });
+
+        progressBar.addEventListener('input', () => {
+            const seekTime = (progressBar.value / 100) * audioPlayer.duration;
+            audioPlayer.currentTime = seekTime;
+        });
+
+        audioPlayer.addEventListener('timeupdate', () => {
+            if(audioPlayer.duration) {
+                const progressPercent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressBar.value = progressPercent;
+            }
+        });
+
+        volumeSlider.addEventListener('input', () => {
+            audioPlayer.volume = volumeSlider.value;
+        });
+
+        function startUpdatingProgress() {
+            if (updateProgressInterval) clearInterval(updateProgressInterval);
+            updateProgressInterval = setInterval(() => {
+                if(audioPlayer.duration) {
+                    const progressPercent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                    progressBar.value = progressPercent;
+                }
+            }, 500);
+        }
+
+        function stopUpdatingProgress() {
+            clearInterval(updateProgressInterval);
+        }
+
+        // Carica la prima traccia all'avvio
+        loadTrack(currentTrackIndex);
+    </script>
+</body>
+</html>
